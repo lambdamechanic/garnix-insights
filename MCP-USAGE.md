@@ -57,9 +57,9 @@ Is commit abc123def ready for deployment?
 ```
 
 ### 3. get_build_logs
-Get detailed build information:
+Get detailed build logs for a specific build:
 ```
-Show me the build details for commit abc123def
+Show me the logs for build 3gYRlE80
 ```
 
 ## Example Conversation

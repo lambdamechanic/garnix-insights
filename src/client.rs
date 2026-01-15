@@ -1,11 +1,12 @@
-//! HTTP client for interacting with the Garnix.io API
+//! HTTP client for interacting with the Garnix API
 
 use crate::error::GarnixError;
 use crate::types::{GarnixResponse, LogResponse};
 use reqwest::{Client, StatusCode};
+use std::env;
 use tracing::{error, info, warn};
 
-/// HTTP client for Garnix.io API
+/// HTTP client for Garnix API
 pub struct GarnixClient {
     client: Client,
     base_url: String,
@@ -22,7 +23,7 @@ impl GarnixClient {
     pub fn new() -> Self {
         Self {
             client: Client::new(),
-            base_url: "https://garnix.io/api".to_string(),
+            base_url: default_base_url(),
         }
     }
 
@@ -38,7 +39,7 @@ impl GarnixClient {
     pub fn with_client(client: Client) -> Self {
         Self {
             client,
-            base_url: "https://garnix.io/api".to_string(),
+            base_url: default_base_url(),
         }
     }
 
@@ -53,7 +54,7 @@ impl GarnixClient {
     /// Fetch build status for a specific commit
     ///
     /// # Arguments
-    /// * `jwt_token` - JWT authentication token for Garnix.io API
+    /// * `jwt_token` - JWT authentication token for Garnix API
     /// * `commit_id` - Git commit hash to fetch build status for
     ///
     /// # Returns
@@ -68,7 +69,7 @@ impl GarnixClient {
     ) -> Result<GarnixResponse, GarnixError> {
         info!("Fetching build status for commit: {}", commit_id);
 
-        let url = format!("{}/builds/{}", self.base_url, commit_id);
+        let url = format!("{}/commits/{}", self.base_url, commit_id);
 
         let response = self
             .client
@@ -140,7 +141,7 @@ impl GarnixClient {
     ) -> Result<LogResponse, GarnixError> {
         info!("Fetching build logs for build: {}", build_id);
 
-        let url = format!("{}/builds/{}/logs", self.base_url, build_id);
+        let url = format!("{}/build/{}/logs", self.base_url, build_id);
 
         let response = self
             .client
@@ -208,7 +209,7 @@ impl GarnixClient {
     pub async fn validate_token(&self, jwt_token: &str) -> Result<(), GarnixError> {
         info!("Validating JWT token");
 
-        let url = format!("{}/user", self.base_url);
+        let url = format!("{}/whoami", self.base_url);
 
         let response = self
             .client
@@ -249,6 +250,10 @@ impl GarnixClient {
     }
 }
 
+fn default_base_url() -> String {
+    env::var("GARNIX_API_URL").unwrap_or_else(|_| "https://app.garnix.io/api".to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -262,7 +267,8 @@ mod tests {
             id: "test-build-1".to_string(),
             repo_user: "testuser".to_string(),
             repo_name: "testrepo".to_string(),
-            branch: "main".to_string(),
+            branch: Some("main".to_string()),
+            pr_from_fork: None,
             repo_is_public: true,
             git_commit: "abc123".to_string(),
             package: "test-package".to_string(),
@@ -308,7 +314,7 @@ mod tests {
         });
 
         let _mock = server
-            .mock("GET", "/builds/3b8e1f2a9c5d7e4a6b2f9e7c1a4d8f3a5c2e9b7d")
+            .mock("GET", "/commits/3b8e1f2a9c5d7e4a6b2f9e7c1a4d8f3a5c2e9b7d")
             .match_header("authorization", "Bearer test-token")
             .with_status(200)
             .with_header("content-type", "application/json")
@@ -335,7 +341,7 @@ mod tests {
         let client = GarnixClient::with_base_url(server.url());
 
         let _mock = server
-            .mock("GET", "/builds/4c9f2e7b1a5d8e3a6b1f4e9c2a7d5f8a3c6e1b9f")
+            .mock("GET", "/commits/4c9f2e7b1a5d8e3a6b1f4e9c2a7d5f8a3c6e1b9f")
             .match_header("authorization", "Bearer invalid-token")
             .with_status(401)
             .create_async()
@@ -353,7 +359,7 @@ mod tests {
         let client = GarnixClient::with_base_url(server.url());
 
         let _mock = server
-            .mock("GET", "/builds/nonexistent")
+            .mock("GET", "/commits/nonexistent")
             .match_header("authorization", "Bearer test-token")
             .with_status(404)
             .create_async()
@@ -383,7 +389,7 @@ mod tests {
         });
 
         let _mock = server
-            .mock("GET", "/builds/test-build-1/logs")
+            .mock("GET", "/build/test-build-1/logs")
             .match_header("authorization", "Bearer test-token")
             .with_status(200)
             .with_header("content-type", "application/json")
@@ -406,7 +412,7 @@ mod tests {
         let client = GarnixClient::with_base_url(server.url());
 
         let _mock = server
-            .mock("GET", "/user")
+            .mock("GET", "/whoami")
             .match_header("authorization", "Bearer valid-token")
             .with_status(200)
             .with_body(r#"{"username": "testuser"}"#)
@@ -423,7 +429,7 @@ mod tests {
         let client = GarnixClient::with_base_url(server.url());
 
         let _mock = server
-            .mock("GET", "/user")
+            .mock("GET", "/whoami")
             .match_header("authorization", "Bearer invalid-token")
             .with_status(401)
             .create_async()
@@ -436,17 +442,25 @@ mod tests {
     #[test]
     fn test_client_creation() {
         let client = GarnixClient::new();
-        assert_eq!(client.base_url(), "https://garnix.io/api");
+        assert_eq!(client.base_url(), "https://app.garnix.io/api");
 
         let client = GarnixClient::with_base_url("https://custom.api.url");
         assert_eq!(client.base_url(), "https://custom.api.url");
 
         let custom_client = reqwest::Client::new();
         let client = GarnixClient::with_client(custom_client);
-        assert_eq!(client.base_url(), "https://garnix.io/api");
+        assert_eq!(client.base_url(), "https://app.garnix.io/api");
 
         let custom_client = reqwest::Client::new();
         let client = GarnixClient::with_client_and_url(custom_client, "https://custom.url");
         assert_eq!(client.base_url(), "https://custom.url");
+    }
+
+    #[test]
+    fn test_client_creation_with_env_override() {
+        env::set_var("GARNIX_API_URL", "https://override.example/api");
+        let client = GarnixClient::new();
+        assert_eq!(client.base_url(), "https://override.example/api");
+        env::remove_var("GARNIX_API_URL");
     }
 }

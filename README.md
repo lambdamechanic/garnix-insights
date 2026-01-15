@@ -55,7 +55,7 @@ export GARNIX_JWT_TOKEN="your_jwt_token_here"
 2. **Open Developer Tools**: Press F12 or right-click → "Inspect Element"
 3. **Go to Network Tab**: Click on the "Network" tab in developer tools
 4. **Make an API Request**: Navigate around the Garnix.io site to trigger API calls
-5. **Find API Request**: Look for requests to `api.garnix.io` in the network list
+5. **Find API Request**: Look for requests to `app.garnix.io/api` in the network list
 6. **Copy JWT from Cookie**: 
    - Click on any API request
    - Go to "Request Headers" section

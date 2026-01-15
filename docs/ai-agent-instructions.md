@@ -177,7 +177,7 @@ Required environment variables:
 - `GARNIX_JWT_TOKEN` – authentication token
 
 Optional:
-- `GARNIX_API_URL` – default `https://api.garnix.io`
+- `GARNIX_API_URL` – default `https://app.garnix.io/api`
 - `RUST_LOG` – e.g., `info` or `garnix_insights=debug` for verbose
 
 ### MCP Integration Examples
