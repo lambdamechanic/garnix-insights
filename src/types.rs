@@ -24,7 +24,7 @@ pub struct Summary {
     /// Git commit hash
     pub git_commit: String,
     /// Git branch name
-    pub branch: String,
+    pub branch: Option<String>,
     /// User who requested the build
     pub req_user: String,
     /// Build start time
@@ -49,9 +49,11 @@ pub struct Build {
     /// Repository name
     pub repo_name: String,
     /// Git branch name
-    pub branch: String,
+    pub branch: Option<String>,
     /// Whether the repository is public
     pub repo_is_public: bool,
+    /// PR source repo when applicable (forks)
+    pub pr_from_fork: Option<String>,
     /// Git commit hash
     pub git_commit: String,
     /// Package/derivation name
@@ -264,7 +266,8 @@ mod tests {
             id: "1".to_string(),
             repo_user: "test".to_string(),
             repo_name: "test".to_string(),
-            branch: "main".to_string(),
+            branch: Some("main".to_string()),
+            pr_from_fork: None,
             repo_is_public: true,
             git_commit: "abc123".to_string(),
             package: "test-pkg".to_string(),
@@ -296,7 +299,7 @@ mod tests {
                 repo_name: "test".to_string(),
                 repo_is_public: true,
                 git_commit: "abc123".to_string(),
-                branch: "main".to_string(),
+                branch: Some("main".to_string()),
                 req_user: "user".to_string(),
                 start_time: "2024-01-01T00:00:00Z".to_string(),
                 succeeded: 1,
@@ -309,7 +312,8 @@ mod tests {
                     id: "1".to_string(),
                     repo_user: "test".to_string(),
                     repo_name: "test".to_string(),
-                    branch: "main".to_string(),
+                    branch: Some("main".to_string()),
+                    pr_from_fork: None,
                     repo_is_public: true,
                     git_commit: "abc123".to_string(),
                     package: "pkg1".to_string(),
@@ -330,7 +334,8 @@ mod tests {
                     id: "2".to_string(),
                     repo_user: "test".to_string(),
                     repo_name: "test".to_string(),
-                    branch: "main".to_string(),
+                    branch: Some("main".to_string()),
+                    pr_from_fork: None,
                     repo_is_public: true,
                     git_commit: "abc123".to_string(),
                     package: "pkg2".to_string(),
@@ -366,7 +371,8 @@ mod tests {
                 repo_name: "test".to_string(),
                 repo_is_public: true,
                 git_commit: "abc123".to_string(),
-                branch: "main".to_string(),
+                branch: Some("main".to_string()),
+                pr_from_fork: None,
                 req_user: "user".to_string(),
                 start_time: "2024-01-01T00:00:00Z".to_string(),
                 succeeded: 1,

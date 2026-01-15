@@ -226,20 +226,20 @@ impl GarnixMcpServer {
                             },
                             {
                                 "name": "get_build_logs",
-                                "description": "Get detailed build logs for a specific commit from Garnix",
+                                "description": "Get detailed build logs for a specific build from Garnix",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
-                                        "commit_id": {
+                                        "build_id": {
                                             "type": "string",
-                                            "description": "The commit SHA to get logs for"
+                                            "description": "The build ID to get logs for"
                                         },
                                         "token": {
                                             "type": "string",
                                             "description": "JWT token for Garnix API authentication"
                                         }
                                     },
-                                    "required": ["commit_id", "token"]
+                                    "required": ["build_id", "token"]
                                 }
                             },
                             {
@@ -346,39 +346,41 @@ impl GarnixMcpServer {
     }
 
     async fn handle_get_build_logs(&self, arguments: Value) -> Result<Value, String> {
-        let commit_id = arguments
-            .get("commit_id")
+        let build_id = arguments
+            .get("build_id")
             .and_then(|v| v.as_str())
-            .ok_or("Missing required argument: commit_id")?;
+            .ok_or("Missing required argument: build_id")?;
 
         let token = arguments
             .get("token")
             .and_then(|v| v.as_str())
             .ok_or("Missing required argument: token")?;
 
-        match self.client.fetch_build_status(token, commit_id).await {
-            Ok(status) => {
-                let logs_text = status.builds
-                    .iter()
-                    .map(|build| {
-                        format!(
-                            "**Build {} ({})**:\nStatus: {}\nSystem: {}\nPackage: {}\nDuration: {} to {}",
-                            build.id,
-                            build.system.as_ref().unwrap_or(&"unknown".to_string()),
-                            build.status_with_emoji(),
-                            build.system.as_ref().unwrap_or(&"unknown".to_string()),
-                            build.package,
-                            build.start_time,
-                            build.end_time
-                        )
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n\n");
+        match self.client.fetch_build_logs(token, build_id).await {
+            Ok(logs) => {
+                let mut lines = Vec::new();
+                for entry in &logs.logs {
+                    lines.push(format!("[{}] {}", entry.timestamp, entry.log_message));
+                }
+
+                let body = if lines.is_empty() {
+                    format!(
+                        "No logs available for build {} (finished: {}).",
+                        build_id, logs.finished
+                    )
+                } else {
+                    format!(
+                        "Logs for build {} (finished: {}):\n{}",
+                        build_id,
+                        logs.finished,
+                        lines.join("\n")
+                    )
+                };
 
                 Ok(json!({
                     "content": [{
                         "type": "text",
-                        "text": format!("Build Information for commit {}:\n\n{}", commit_id, logs_text)
+                        "text": body
                     }]
                 }))
             }

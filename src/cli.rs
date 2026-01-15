@@ -104,7 +104,10 @@ impl Cli {
             tracing::Level::INFO
         };
 
-        tracing_subscriber::fmt().with_max_level(level).init();
+        tracing_subscriber::fmt()
+            .with_max_level(level)
+            .with_writer(std::io::stderr)
+            .init();
 
         info!("Starting Garnix Insights v{}", env!("CARGO_PKG_VERSION"));
 
@@ -294,7 +297,10 @@ impl Cli {
             "Repository: {}/{}",
             response.summary.repo_owner, response.summary.repo_name
         );
-        println!("Branch: {}", response.summary.branch);
+        println!(
+            "Branch: {}",
+            response.summary.branch.as_deref().unwrap_or("unknown")
+        );
         println!("Started: {}", response.summary.start_time);
         println!();
 
@@ -333,7 +339,7 @@ mod tests {
                 repo_name: "testrepo".to_string(),
                 repo_is_public: true,
                 git_commit: "7a2f5e9c1b4d8a3e6f2a9e5c8b1d4f7a3c6e9b2d".to_string(),
-                branch: "main".to_string(),
+                branch: Some("main".to_string()),
                 req_user: "testuser".to_string(),
                 start_time: "2024-01-01T00:00:00Z".to_string(),
                 succeeded: 2,
@@ -346,7 +352,8 @@ mod tests {
                     id: "build1".to_string(),
                     repo_user: "testuser".to_string(),
                     repo_name: "testrepo".to_string(),
-                    branch: "main".to_string(),
+                    branch: Some("main".to_string()),
+                    pr_from_fork: None,
                     repo_is_public: true,
                     git_commit: "7a2f5e9c1b4d8a3e6f2a9e5c8b1d4f7a3c6e9b2d".to_string(),
                     package: "package1".to_string(),
@@ -367,7 +374,8 @@ mod tests {
                     id: "build2".to_string(),
                     repo_user: "testuser".to_string(),
                     repo_name: "testrepo".to_string(),
-                    branch: "main".to_string(),
+                    branch: Some("main".to_string()),
+                    pr_from_fork: None,
                     repo_is_public: true,
                     git_commit: "7a2f5e9c1b4d8a3e6f2a9e5c8b1d4f7a3c6e9b2d".to_string(),
                     package: "package2".to_string(),
